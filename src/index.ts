@@ -4,7 +4,7 @@
 // 	await next()
 // })
 
-import { Hono, Next } from 'hono'
+import { Hono } from 'hono'
 import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
 import { env } from 'hono/adapter'
@@ -90,14 +90,13 @@ app.put('/todos/done',async (c) => {
 	}).$extends(withAccelerate())
 
 	const id = Number(c.req.query('id'))
-
-	const currentTodo = await prisma.todos({
+	const currentTodo = await prisma.todos.findFirstOrThrow({
 		where : {
 			id
 		}
 	})
 
-	await prisma.todos.update({
+	const res = await prisma.todos.update({
 		where : {
 			id
 		},
@@ -105,7 +104,8 @@ app.put('/todos/done',async (c) => {
 			done : !currentTodo.done
 		}
 	})
-	return c.json()
+
+	return c.json(res)
 })
 
 export default app
