@@ -1,9 +1,3 @@
-// app.use('*',async (c,next) => {
-// 	const { DATABASE_URL } = env<{ DATABASE_URL : string }>(c)
-// 	await createConnection(DATABASE_URL)
-// 	await next()
-// })
-
 import { Hono } from 'hono'
 import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
@@ -11,14 +5,17 @@ import { env } from 'hono/adapter'
 
 const app = new Hono()
 
-// post a todo with title and description
-app.post('/todos/create', async (c) => {
-	// the connection
+var prisma : any
+
+// middleware to initialize PrismaClient instance
+app.use('*', async (c, next) => {
 	const { DATABASE_URL } = env<{ DATABASE_URL: string }>(c)
-	const prisma = new PrismaClient({
-		datasourceUrl: DATABASE_URL,
-	}).$extends(withAccelerate())
-	
+	prisma = new PrismaClient({ datasourceUrl: DATABASE_URL }).$extends(withAccelerate())
+	await next()
+})
+
+// post a todo with title and description
+app.post('/todos/create', async (c) => {	
 	const body : {
 		title : string,
 		description : string
@@ -33,11 +30,6 @@ app.post('/todos/create', async (c) => {
 
 // update a todo so that it toggles done
 app.put('/todos/update',async (c) => {
-	const { DATABASE_URL } = env<{ DATABASE_URL: string }>(c)
-	const prisma = new PrismaClient({
-		datasourceUrl: DATABASE_URL,
-	}).$extends(withAccelerate())
-
 	const body : {
 		title : string,
 		description : string,
@@ -56,22 +48,12 @@ app.put('/todos/update',async (c) => {
 
 // get all todos
 app.get('/todos/bulk',async (c) => {
-	const { DATABASE_URL } = env<{ DATABASE_URL: string }>(c)
-	const prisma = new PrismaClient({
-		datasourceUrl: DATABASE_URL,
-	}).$extends(withAccelerate())
-
 	const todos = await prisma.todos.findMany();
 	return c.json(todos)
 })
 
 // remove a todo
 app.delete('/todos/delete',async (c) => {
-	const { DATABASE_URL } = env<{ DATABASE_URL: string }>(c)
-	const prisma = new PrismaClient({
-		datasourceUrl: DATABASE_URL,
-	}).$extends(withAccelerate())
-
 	const id = Number(c.req.query('id'))
 
 	const res = await prisma.todos.delete({
@@ -84,11 +66,6 @@ app.delete('/todos/delete',async (c) => {
 }) 
 
 app.put('/todos/done',async (c) => {
-	const { DATABASE_URL } = env<{ DATABASE_URL: string }>(c)
-	const prisma = new PrismaClient({
-		datasourceUrl: DATABASE_URL,
-	}).$extends(withAccelerate())
-
 	const id = Number(c.req.query('id'))
 	const currentTodo = await prisma.todos.findFirstOrThrow({
 		where : {
